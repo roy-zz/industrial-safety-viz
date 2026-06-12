@@ -119,6 +119,15 @@
     background:rgba(239,68,68,.10) !important}
   blockquote.has-link{border-left-color:#10b981 !important;
     background:rgba(16,185,129,.10) !important; font-size:12.5px}
+  /* ===== 도식 / 전체문항 탭 ===== */
+  .tabbtns{display:flex; gap:4px; border-bottom:2px solid var(--line); margin:14px 0 18px;
+    position:sticky; top:57px; background:var(--bg); z-index:10}
+  .tab{background:none; border:none; padding:11px 20px; font-size:14.5px; font-weight:700;
+    color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px}
+  .tab:hover{color:var(--ink)}
+  .tab.active{color:var(--accent); border-bottom-color:var(--accent)}
+  .panel.hidden{display:none}
+  .panel > h2:first-child{display:none}   /* 탭 라벨이 대신함 */
   #scrim{display:none; position:fixed; inset:57px 0 0; background:rgba(0,0,0,.4); z-index:20}
   footer{color:var(--muted); font-size:12px; text-align:center; margin-top:40px; padding-top:16px;
     border-top:1px solid var(--line)}
@@ -170,7 +179,7 @@ function enhance(root){
     if(el.tagName==='H3' && /^Q\d+-\d+/.test(el.textContent.trim())){
       const det=document.createElement('details'); det.className='qitem';
       const sum=document.createElement('summary');
-      sum.textContent=el.textContent.trim().replace(/\s*설명하시오\.?$/,'');
+      sum.textContent=el.textContent.trim();
       det.appendChild(sum);
       let j=i+1;
       while(j<kids.length && !['H2','H3'].includes(kids[j].tagName)){ det.appendChild(kids[j]); j++; }
@@ -178,6 +187,28 @@ function enhance(root){
       i=j;
     } else i++;
   }
+}
+
+// 도식 / 전체문항 2탭 분리
+function buildTabs(){
+  const h2s=[...content.querySelectorAll(':scope > h2')];
+  const diagH2=h2s.find(h=>/도식|한눈에/.test(h.textContent));
+  const listH2=h2s.find(h=>/전체 문항/.test(h.textContent));
+  if(!diagH2 || !listH2) return;
+  const tabs=document.createElement('div');
+  tabs.innerHTML='<div class="tabbtns">'+
+    '<button class="tab active" data-p="0">📊 도식</button>'+
+    '<button class="tab" data-p="1">📋 전체 문항</button></div>'+
+    '<div class="panel" data-p="0"></div><div class="panel hidden" data-p="1"></div>';
+  content.insertBefore(tabs, diagH2);
+  const p0=tabs.querySelector('.panel[data-p="0"]');
+  const p1=tabs.querySelector('.panel[data-p="1"]');
+  let n=diagH2; while(n && n!==listH2){ const nx=n.nextSibling; p0.appendChild(n); n=nx; }
+  n=listH2;   while(n){ const nx=n.nextSibling; p1.appendChild(n); n=nx; }
+  tabs.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
+    tabs.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b===btn));
+    tabs.querySelectorAll('.panel').forEach(pp=>pp.classList.toggle('hidden', pp.dataset.p!==btn.dataset.p));
+  });
 }
 
 const nav = document.getElementById('nav');
@@ -265,6 +296,7 @@ async function render(id){
     bar.querySelector('#closeAll').onclick=()=>items.forEach(d=>d.open=false);
   }
   try{ await mermaid.run({nodes: content.querySelectorAll('.mermaid')}); }catch(e){}
+  buildTabs();
   content.scrollIntoView({block:'start'});
   // active state
   nav.querySelectorAll('.topics a').forEach(a=>a.classList.toggle('active', a.dataset.id===id));
