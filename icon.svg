@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#0f1217"/>
+  <rect x="40" y="40" width="432" height="432" rx="72" fill="none" stroke="#1e293b" stroke-width="8"/>
+  <circle cx="256" cy="186" r="96" fill="none" stroke="#60a5fa" stroke-width="22"/>
+  <text x="256" y="220" text-anchor="middle" font-family="-apple-system,Segoe UI,Malgun Gothic,sans-serif"
+        font-size="120" font-weight="800" fill="#e6e8ec">3차</text>
+  <text x="256" y="372" text-anchor="middle" font-family="-apple-system,Segoe UI,Malgun Gothic,sans-serif"
+        font-size="70" font-weight="700" fill="#60a5fa">면접도식</text>
+</svg>

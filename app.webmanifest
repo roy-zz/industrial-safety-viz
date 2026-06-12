@@ -1,0 +1,15 @@
+{
+  "name": "화공안전지도사 3차 면접 토픽 도식",
+  "short_name": "3차 도식",
+  "description": "화공안전지도사 3차 면접 문제은행 415문 — 도식·마인드맵·전체문항·진도추적",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1217",
+  "theme_color": "#0f1217",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
