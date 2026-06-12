@@ -93,6 +93,32 @@
   .home-card .t{font-size:14px; font-weight:600; margin:6px 0 2px}
   .home-card .c{font-size:12px; color:var(--muted)}
   .empty{color:var(--muted); font-size:13px; padding:6px 10px}
+  /* ===== 접이식 문항 ===== */
+  .qbar{display:flex; gap:8px; margin:6px 0 14px}
+  .qbar button{font-size:12px; padding:6px 12px; border:1px solid var(--line); border-radius:8px;
+    background:var(--panel); color:var(--ink); cursor:pointer}
+  .qbar button:hover{border-color:var(--accent); color:var(--accent)}
+  details.qitem{border:1px solid var(--line); border-radius:10px; margin:10px 0; background:var(--panel)}
+  details.qitem > summary{cursor:pointer; padding:12px 16px; font-weight:600; font-size:14px;
+    list-style:none; display:flex; gap:8px; align-items:flex-start}
+  details.qitem > summary::-webkit-details-marker{display:none}
+  details.qitem > summary::before{content:'▸'; color:var(--accent); font-size:12px; margin-top:2px;
+    flex:none; transition:transform .15s}
+  details.qitem[open] > summary::before{transform:rotate(90deg)}
+  details.qitem[open] > summary{border-bottom:1px solid var(--line); background:var(--hover);
+    border-radius:10px 10px 0 0}
+  details.qitem > :not(summary){padding-left:16px; padding-right:16px}
+  details.qitem > :not(summary):last-child{padding-bottom:14px; margin-bottom:0}
+  details.qitem h3{display:none}
+  .qmeta{font-size:12px !important; color:var(--muted); margin:8px 0 0 !important;
+    padding-top:8px !important; padding-bottom:8px !important}
+  .qmeta code{font-size:11px}
+  blockquote.has-mnemonic{border-left-color:#f59e0b !important;
+    background:rgba(245,158,11,.13) !important}
+  blockquote.has-trap{border-left-color:#ef4444 !important;
+    background:rgba(239,68,68,.10) !important}
+  blockquote.has-link{border-left-color:#10b981 !important;
+    background:rgba(16,185,129,.10) !important; font-size:12.5px}
   #scrim{display:none; position:fixed; inset:57px 0 0; background:rgba(0,0,0,.4); z-index:20}
   footer{color:var(--muted); font-size:12px; text-align:center; margin-top:40px; padding-top:16px;
     border-top:1px solid var(--line)}
@@ -125,6 +151,34 @@
 const dark = matchMedia('(prefers-color-scheme: dark)').matches;
 mermaid.initialize({startOnLoad:false, theme: dark?'dark':'default', securityLevel:'loose',
   flowchart:{useMaxWidth:true, htmlLabels:true}, themeVariables:{fontSize:'14px'}});
+marked.setOptions({breaks:true, gfm:true});
+
+// 본문 후처리: blockquote 색상분류 + ### Q 문항 접이식 변환
+function enhance(root){
+  root.querySelectorAll('blockquote').forEach(bq=>{
+    const t=bq.textContent;
+    if(t.includes('💡')) bq.classList.add('has-mnemonic');
+    else if(t.includes('함정(❌)')||t.includes('❌')) bq.classList.add('has-trap');
+    else if(t.includes('🔗')) bq.classList.add('has-link');
+  });
+  root.querySelectorAll('p').forEach(p=>{
+    if(/^【(빈출|근거)/.test(p.textContent.trim())) p.classList.add('qmeta');
+  });
+  const kids=[...root.children]; let i=0;
+  while(i<kids.length){
+    const el=kids[i];
+    if(el.tagName==='H3' && /^Q\d+-\d+/.test(el.textContent.trim())){
+      const det=document.createElement('details'); det.className='qitem';
+      const sum=document.createElement('summary');
+      sum.textContent=el.textContent.trim().replace(/\s*설명하시오\.?$/,'');
+      det.appendChild(sum);
+      let j=i+1;
+      while(j<kids.length && !['H2','H3'].includes(kids[j].tagName)){ det.appendChild(kids[j]); j++; }
+      root.replaceChild(det, el);
+      i=j;
+    } else i++;
+  }
+}
 
 const nav = document.getElementById('nav');
 const content = document.getElementById('content');
@@ -196,7 +250,20 @@ async function render(id){
     const pre=document.createElement('pre'); pre.className='mermaid';
     pre.textContent=code.textContent; code.closest('pre').replaceWith(pre);
   });
+  enhance(tmp);
   content.innerHTML=tmp.innerHTML;
+  // 접이식 문항이 있으면 전체 펼치기/접기 툴바 삽입
+  const items=content.querySelectorAll('details.qitem');
+  if(items.length){
+    const bar=document.createElement('div'); bar.className='qbar';
+    bar.innerHTML=`<button id="openAll">▾ 전체 펼치기 (${items.length})</button>`+
+      `<button id="closeAll">▸ 전체 접기</button>`;
+    const anchor=[...content.children].find(c=>c.tagName==='H2' &&
+      c.textContent.includes('전체 문항')) || content.firstChild;
+    anchor.insertAdjacentElement('afterend', bar);
+    bar.querySelector('#openAll').onclick=()=>items.forEach(d=>d.open=true);
+    bar.querySelector('#closeAll').onclick=()=>items.forEach(d=>d.open=false);
+  }
   try{ await mermaid.run({nodes: content.querySelectorAll('.mermaid')}); }catch(e){}
   content.scrollIntoView({block:'start'});
   // active state
