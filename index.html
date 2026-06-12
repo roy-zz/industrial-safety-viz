@@ -6,17 +6,11 @@
 <meta name="color-scheme" content="light dark">
 <title>화공안전지도사 3차 면접 — 토픽 도식</title>
 <style>
+  /* 다크 테마 고정 */
   :root{
-    --bg:#f7f8fa; --panel:#ffffff; --ink:#1d2330; --muted:#6b7280;
-    --line:#e5e7eb; --accent:#2563eb; --accent-soft:#dbeafe; --hover:#f1f5f9;
-    --shadow:0 1px 3px rgba(0,0,0,.08);
-  }
-  @media (prefers-color-scheme: dark){
-    :root{
-      --bg:#0f1217; --panel:#171b22; --ink:#e6e8ec; --muted:#9aa3b2;
-      --line:#262b34; --accent:#60a5fa; --accent-soft:#1e293b; --hover:#1d222b;
-      --shadow:0 1px 3px rgba(0,0,0,.4);
-    }
+    --bg:#0f1217; --panel:#171b22; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#262b34; --accent:#60a5fa; --accent-soft:#1e293b; --hover:#1d222b;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
@@ -128,6 +122,27 @@
   .tab.active{color:var(--accent); border-bottom-color:var(--accent)}
   .panel.hidden{display:none}
   .panel > h2:first-child{display:none}   /* 탭 라벨이 대신함 */
+  /* ===== 인포그래픽 카드 ===== */
+  .info-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin:6px 0 22px}
+  .info-card{border-radius:12px; padding:14px 16px; color:#fff; box-shadow:var(--shadow)}
+  .info-card h4{margin:0 0 8px; font-size:14px; font-weight:700}
+  .info-card ul{margin:0; padding-left:18px; font-size:12.5px; line-height:1.55}
+  .info-card .mnem{display:inline-block; font-size:11px; background:rgba(255,255,255,.25);
+    padding:3px 9px; border-radius:11px; margin-top:10px; font-weight:700}
+  /* ===== 인터랙티브 마인드맵 (Markmap) ===== */
+  .mapwrap{position:relative; border:1px solid var(--line); border-radius:12px; background:var(--panel);
+    margin:10px 0 8px; overflow:hidden}
+  .mapwrap .markmap{height:min(72vh,560px)}
+  .mapwrap .markmap > svg{width:100%; height:100%}
+  /* 마인드맵 다크 가독성: 라벨(foreignObject div) 밝게, 가지선·접기원 밝게 */
+  .mapwrap .markmap text{fill:#e6e8ec !important}
+  .mapwrap .markmap foreignObject{color:#e6e8ec}
+  .mapwrap .markmap foreignObject div{color:#e6e8ec !important}
+  .mapwrap .markmap foreignObject code{background:#0b0e13; color:#fca5a5}
+  .mapwrap .markmap a{color:#93c5fd !important}
+  .mapwrap .markmap circle{stroke:#cbd5e1; fill:#171b22}
+  .mapwrap .markmap .markmap-link{stroke-opacity:.9}
+  .maphint{font-size:11.5px; color:var(--muted); margin:0 0 18px; padding-left:2px}
   #scrim{display:none; position:fixed; inset:57px 0 0; background:rgba(0,0,0,.4); z-index:20}
   footer{color:var(--muted); font-size:12px; text-align:center; margin-top:40px; padding-top:16px;
     border-top:1px solid var(--line)}
@@ -156,8 +171,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>window.markmap={autoLoader:{manual:true}};</script>
+<script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@0.18"></script>
 <script>
-const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+const dark = true;  // 다크 테마 고정
 mermaid.initialize({startOnLoad:false, theme: dark?'dark':'default', securityLevel:'loose',
   flowchart:{useMaxWidth:true, htmlLabels:true}, themeVariables:{fontSize:'14px'}});
 marked.setOptions({breaks:true, gfm:true});
@@ -189,7 +206,17 @@ function enhance(root){
   }
 }
 
-// 도식 / 전체문항 2탭 분리
+// 마인드맵 지연 렌더 (숨김 패널에서 렌더하면 0크기가 되므로 보일 때 렌더)
+let mapsRendered=false;
+async function renderMaps(){
+  if(mapsRendered) return;
+  if(window.markmap?.autoLoader && content.querySelector('.markmap')){
+    mapsRendered=true;
+    try{ await markmap.autoLoader.renderAllUnder(content); }catch(e){ console.error('markmap', e); }
+  }
+}
+
+// 도식 / 전체문항 2탭 분리 — 기본 노출은 '전체 문항'
 function buildTabs(){
   const h2s=[...content.querySelectorAll(':scope > h2')];
   const diagH2=h2s.find(h=>/도식|한눈에/.test(h.textContent));
@@ -197,9 +224,9 @@ function buildTabs(){
   if(!diagH2 || !listH2) return;
   const tabs=document.createElement('div');
   tabs.innerHTML='<div class="tabbtns">'+
-    '<button class="tab active" data-p="0">📊 도식</button>'+
-    '<button class="tab" data-p="1">📋 전체 문항</button></div>'+
-    '<div class="panel" data-p="0"></div><div class="panel hidden" data-p="1"></div>';
+    '<button class="tab active" data-p="1">📋 전체 문항</button>'+
+    '<button class="tab" data-p="0">📊 도식</button></div>'+
+    '<div class="panel hidden" data-p="0"></div><div class="panel" data-p="1"></div>';
   content.insertBefore(tabs, diagH2);
   const p0=tabs.querySelector('.panel[data-p="0"]');
   const p1=tabs.querySelector('.panel[data-p="1"]');
@@ -208,6 +235,7 @@ function buildTabs(){
   tabs.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{
     tabs.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b===btn));
     tabs.querySelectorAll('.panel').forEach(pp=>pp.classList.toggle('hidden', pp.dataset.p!==btn.dataset.p));
+    if(btn.dataset.p==='0') renderMaps();   // 도식 처음 열 때 마인드맵 렌더
   });
 }
 
@@ -281,8 +309,31 @@ async function render(id){
     const pre=document.createElement('pre'); pre.className='mermaid';
     pre.textContent=code.textContent; code.closest('pre').replaceWith(pre);
   });
+  // ```cards (JSON) → 인포그래픽 카드
+  const CARDCOL={rule:'#2563eb',kosha:'#059669',num:'#7c3aed',mnem:'#f59e0b',trap:'#dc2626',exempt:'#6b7280'};
+  tmp.querySelectorAll('code.language-cards').forEach(code=>{
+    let cards=[]; try{ cards=JSON.parse(code.textContent); }catch(e){ return; }
+    const grid=document.createElement('div'); grid.className='info-grid';
+    cards.forEach(c=>{
+      const d=document.createElement('div'); d.className='info-card';
+      d.style.background=CARDCOL[c.color]||'#2563eb';
+      if(c.color==='mnem') d.style.color='#111';
+      d.innerHTML=`<h4>${c.title||''}</h4><ul>${(c.items||[]).map(i=>`<li>${i}</li>`).join('')}</ul>`+
+        (c.mnemonic?`<span class="mnem">💡 ${c.mnemonic}</span>`:'');
+      grid.appendChild(d);
+    });
+    code.closest('pre').replaceWith(grid);
+  });
+  // ```markmap → 인터랙티브 마인드맵 컨테이너
+  tmp.querySelectorAll('code.language-markmap').forEach(code=>{
+    const wrap=document.createElement('div'); wrap.className='mapwrap';
+    const mm=document.createElement('div'); mm.className='markmap';
+    const tpl=document.createElement('script'); tpl.type='text/template'; tpl.textContent=code.textContent;
+    mm.appendChild(tpl); wrap.appendChild(mm);
+    code.closest('pre').replaceWith(wrap);
+  });
   enhance(tmp);
-  content.innerHTML=tmp.innerHTML;
+  content.replaceChildren(...tmp.childNodes);
   // 접이식 문항이 있으면 전체 펼치기/접기 툴바 삽입
   const items=content.querySelectorAll('details.qitem');
   if(items.length){
@@ -296,7 +347,11 @@ async function render(id){
     bar.querySelector('#closeAll').onclick=()=>items.forEach(d=>d.open=false);
   }
   try{ await mermaid.run({nodes: content.querySelectorAll('.mermaid')}); }catch(e){}
+  mapsRendered=false;
   buildTabs();
+  // 마인드맵이 지금 보이는 상태면(탭 없음/도식이 기본) 즉시 렌더, 아니면 도식 탭 열 때 렌더
+  const mm=content.querySelector('.markmap');
+  if(mm && mm.offsetParent!==null) renderMaps();
   content.scrollIntoView({block:'start'});
   // active state
   nav.querySelectorAll('.topics a').forEach(a=>a.classList.toggle('active', a.dataset.id===id));
